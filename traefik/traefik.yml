@@ -1,16 +1,27 @@
+# traefik/traefik.yml
+
 api:
   dashboard: true
-  insecure: true
+  insecure: true # For development - disable in production
 
 entryPoints:
   web:
     address: ":80"
 
-# Use FILE provider instead of Docker provider
+# Docker provider for auto-discovery
 providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false # Only expose services with traefik.enable=true
+    network: microservices-network # Use this network for routing
+
   file:
     directory: "/etc/traefik/dynamic"
     watch: true
 
 log:
-  level: DEBUG
+  level: INFO # DEBUG for troubleshooting
+
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  format: json

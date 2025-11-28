@@ -1,4 +1,7 @@
 services:
+  # ==========================================
+  # TRAEFIK - API GATEWAY
+  # ==========================================
   traefik:
     image: traefik:v2.10
     container_name: traefik-gateway
@@ -12,17 +15,24 @@ services:
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
     networks:
       - microservices-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
 
+  # ==========================================
+  # AUTH SERVICE
+  # ==========================================
   auth-service:
     build:
-      context: ./auth-service
+      context: ./AuthService
       dockerfile: Dockerfile
     container_name: auth-service
     restart: unless-stopped
     env_file:
-      - ./auth-service/.env
+      - ./AuthService/.env
     volumes:
-      - ./auth-service/src:/app/src:ro
+      - ./AuthService/src:/app/src:ro
     networks:
       - microservices-network
     depends_on:
@@ -34,17 +44,26 @@ services:
       - "traefik.http.services.auth.loadbalancer.server.port=8001"
       - "traefik.http.middlewares.auth-stripprefix.stripprefix.prefixes=/authservice"
       - "traefik.http.routers.auth.middlewares=auth-stripprefix,rate-limit,cors-headers,compress"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # ==========================================
+  # BOOKING SERVICE
+  # ==========================================
   booking-service:
     build:
-      context: ./booking-service
+      context: ./BookingService
       dockerfile: Dockerfile
     container_name: booking-service
     restart: unless-stopped
     env_file:
-      - ./booking-service/.env
+      - ./BookingService/.env
     volumes:
-      - ./booking-service/src:/app/src:ro
+      - ./BookingService/src:/app/src:ro
     networks:
       - microservices-network
     depends_on:
@@ -57,17 +76,26 @@ services:
       - "traefik.http.services.booking.loadbalancer.server.port=8002"
       - "traefik.http.middlewares.booking-stripprefix.stripprefix.prefixes=/bookingservice"
       - "traefik.http.routers.booking.middlewares=booking-stripprefix,rate-limit,cors-headers,compress"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # ==========================================
+  # FLIGHT AND SEARCH SERVICE
+  # ==========================================
   flight-service:
     build:
-      context: ./flight-service
+      context: ./FlightsAndSerachService
       dockerfile: Dockerfile
     container_name: flight-service
     restart: unless-stopped
     env_file:
-      - ./flight-service/.env
+      - ./FlightsAndSerachService/.env
     volumes:
-      - ./flight-service/src:/app/src:ro
+      - ./FlightsAndSerachService/src:/app/src:ro
     networks:
       - microservices-network
     depends_on:
@@ -79,17 +107,26 @@ services:
       - "traefik.http.services.flight.loadbalancer.server.port=8000"
       - "traefik.http.middlewares.flight-stripprefix.stripprefix.prefixes=/flightandsearchservice"
       - "traefik.http.routers.flight.middlewares=flight-stripprefix,rate-limit,cors-headers,compress"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # ==========================================
+  # REMINDER SERVICE
+  # ==========================================
   reminder-service:
     build:
-      context: ./reminder-service
+      context: ./ReminderService
       dockerfile: Dockerfile
     container_name: reminder-service
     restart: unless-stopped
     env_file:
-      - ./reminder-service/.env
+      - ./ReminderService/.env
     volumes:
-      - ./reminder-service/src:/app/src:ro
+      - ./ReminderService/src:/app/src:ro
     networks:
       - microservices-network
     depends_on:
@@ -101,6 +138,12 @@ services:
       - "traefik.http.services.reminder.loadbalancer.server.port=8003"
       - "traefik.http.middlewares.reminder-stripprefix.stripprefix.prefixes=/reminderservice"
       - "traefik.http.routers.reminder.middlewares=reminder-stripprefix,rate-limit,cors-headers,compress"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   microservices-network:
