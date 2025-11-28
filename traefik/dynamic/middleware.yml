@@ -1,0 +1,41 @@
+http:
+  middlewares:
+    # Rate Limiting
+    rate-limit:
+      rateLimit:
+        average: 100      # 100 requests per minute (more lenient for dev)
+        period: 1m
+        burst: 50
+    
+    # CORS Headers
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "*"  # In production, specify exact origins
+        accessControlAllowHeaders:
+          - "*"
+        accessControlExposeHeaders:
+          - "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+    
+    # Compression
+    compress:
+      compress: {}
+    
+    # Security Headers
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslRedirect: false
+        customFrameOptionsValue: "SAMEORIGIN"
+
