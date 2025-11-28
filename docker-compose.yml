@@ -1,9 +1,8 @@
-version: '3.8'
-
 services:
   traefik:
     image: traefik:v2.10
     container_name: traefik-gateway
+    restart: unless-stopped
     ports:
       - "80:80"
       - "8080:8080"
@@ -11,11 +10,97 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
-    extra_hosts:
-      # Allow Traefik to reach your localhost services
-      - "host.docker.internal:host-gateway"
     networks:
       - microservices-network
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    restart: unless-stopped
+    env_file:
+      - ./auth-service/.env
+    volumes:
+      - ./auth-service/src:/app/src:ro
+    networks:
+      - microservices-network
+    depends_on:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/authservice`)"
+      - "traefik.http.routers.auth.entrypoints=web"
+      - "traefik.http.services.auth.loadbalancer.server.port=8001"
+      - "traefik.http.middlewares.auth-stripprefix.stripprefix.prefixes=/authservice"
+      - "traefik.http.routers.auth.middlewares=auth-stripprefix,rate-limit,cors-headers,compress"
+
+  booking-service:
+    build:
+      context: ./booking-service
+      dockerfile: Dockerfile
+    container_name: booking-service
+    restart: unless-stopped
+    env_file:
+      - ./booking-service/.env
+    volumes:
+      - ./booking-service/src:/app/src:ro
+    networks:
+      - microservices-network
+    depends_on:
+      - traefik
+      - auth-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.booking.rule=PathPrefix(`/bookingservice`)"
+      - "traefik.http.routers.booking.entrypoints=web"
+      - "traefik.http.services.booking.loadbalancer.server.port=8002"
+      - "traefik.http.middlewares.booking-stripprefix.stripprefix.prefixes=/bookingservice"
+      - "traefik.http.routers.booking.middlewares=booking-stripprefix,rate-limit,cors-headers,compress"
+
+  flight-service:
+    build:
+      context: ./flight-service
+      dockerfile: Dockerfile
+    container_name: flight-service
+    restart: unless-stopped
+    env_file:
+      - ./flight-service/.env
+    volumes:
+      - ./flight-service/src:/app/src:ro
+    networks:
+      - microservices-network
+    depends_on:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flight.rule=PathPrefix(`/flightandsearchservice`)"
+      - "traefik.http.routers.flight.entrypoints=web"
+      - "traefik.http.services.flight.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.flight-stripprefix.stripprefix.prefixes=/flightandsearchservice"
+      - "traefik.http.routers.flight.middlewares=flight-stripprefix,rate-limit,cors-headers,compress"
+
+  reminder-service:
+    build:
+      context: ./reminder-service
+      dockerfile: Dockerfile
+    container_name: reminder-service
+    restart: unless-stopped
+    env_file:
+      - ./reminder-service/.env
+    volumes:
+      - ./reminder-service/src:/app/src:ro
+    networks:
+      - microservices-network
+    depends_on:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reminder.rule=PathPrefix(`/reminderservice`)"
+      - "traefik.http.routers.reminder.entrypoints=web"
+      - "traefik.http.services.reminder.loadbalancer.server.port=8003"
+      - "traefik.http.middlewares.reminder-stripprefix.stripprefix.prefixes=/reminderservice"
+      - "traefik.http.routers.reminder.middlewares=reminder-stripprefix,rate-limit,cors-headers,compress"
 
 networks:
   microservices-network:
