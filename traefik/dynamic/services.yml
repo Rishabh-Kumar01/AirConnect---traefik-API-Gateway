@@ -1,0 +1,110 @@
+http:
+  # Define your routers
+  routers:
+    auth-router:
+      rule: "PathPrefix(`/authservice`)"
+      service: auth-service
+      middlewares:
+        - auth-strip
+        - common-middleware
+      entryPoints:
+        - web
+
+    booking-router:
+      rule: "PathPrefix(`/bookingservice`)"
+      service: booking-service
+      middlewares:
+        - booking-strip
+        - common-middleware
+      entryPoints:
+        - web
+
+    flight-router:
+      rule: "PathPrefix(`/flightandsearchservice`)"
+      service: flight-service
+      middlewares:
+        - flight-strip
+        - common-middleware
+      entryPoints:
+        - web
+
+    reminder-router:
+      rule: "PathPrefix(`/reminderservice`)"
+      service: reminder-service
+      middlewares:
+        - reminder-strip
+        - common-middleware
+      entryPoints:
+        - web
+
+  # Define your services (pointing to localhost)
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8001"
+
+    booking-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8002"
+
+    flight-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8000"
+
+    reminder-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8003"
+
+  # Middlewares
+  middlewares:
+    auth-strip:
+      stripPrefix:
+        prefixes:
+          - "/authservice"
+
+    booking-strip:
+      stripPrefix:
+        prefixes:
+          - "/bookingservice"
+
+    flight-strip:
+      stripPrefix:
+        prefixes:
+          - "/flightandsearchservice"
+
+    reminder-strip:
+      stripPrefix:
+        prefixes:
+          - "/reminderservice"
+
+    common-middleware:
+      chain:
+        middlewares:
+          - rate-limit
+          - cors-headers
+          - compress
+
+    rate-limit:
+      rateLimit:
+        average: 5
+        period: 1m
+
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowHeaders:
+          - "*"
+
+    compress:
+      compress: {}
